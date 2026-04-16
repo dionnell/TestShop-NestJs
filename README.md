@@ -48,3 +48,5 @@ yarn start:dev
 http://localhost:3000/api/seed
 ```
 
+
+Para ver los enpoint en Swagger [https://testshop-nestjs.onrender.com/api/](https://testshop-nestjs.onrender.com/api/)
