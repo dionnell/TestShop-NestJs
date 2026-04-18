@@ -45,7 +45,7 @@ export class FavoritesController {
 
   @Get('user/:userId')
   @Auth(ValidRoles.user, ValidRoles.admin)
-  @ApiOperation({ summary: 'Get favorites by user ID (admin only)' })
+  @ApiOperation({ summary: 'Get favorites by user ID' })
   @ApiResponse({ status: 200, description: 'List of favorites for the given user' })
   getFavoritesByUserId(
     @Param('userId', ParseUUIDPipe) userId: string,

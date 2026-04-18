@@ -68,7 +68,7 @@ export class CartController {
 
   @Get('user/:userId')
   @Auth(ValidRoles.user, ValidRoles.admin)
-  @ApiOperation({ summary: 'Get cart by user ID (admin only)' })
+  @ApiOperation({ summary: 'Get cart by user ID' })
   @ApiResponse({ status: 200, description: 'Cart contents for the given user' })
   getCartByUserId(
     @Param('userId', ParseUUIDPipe) userId: string,
