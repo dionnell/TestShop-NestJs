@@ -1,5 +1,7 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Product } from '../../products/entities';
+import { CartItem } from 'src/cart/entities/cart-item.entity';
+import { Favorite } from 'src/favorites/entities/favorite.entity';
 
 
 @Entity('users')
@@ -38,6 +40,11 @@ export class User {
     )
     product: Product;
 
+    @OneToMany(() => Favorite, (favorite) => favorite.user)
+    favorites: Favorite[];
+ 
+    @OneToMany(() => CartItem, (cartItem) => cartItem.user)
+    cartItems: CartItem[];
 
     @BeforeInsert()
     checkFieldsBeforeInsert() {
