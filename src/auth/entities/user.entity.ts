@@ -40,11 +40,11 @@ export class User {
     )
     product: Product;
 
-    @OneToMany(() => Favorite, (favorite) => favorite.user)
-    favorites: Favorite[];
- 
-    @OneToMany(() => CartItem, (cartItem) => cartItem.user)
-    cartItems: CartItem[];
+    @OneToMany('Favorite', 'user')
+    favorites: any[];
+
+    @OneToMany('CartItem', 'user')
+    cartItems: any[];
 
     @BeforeInsert()
     checkFieldsBeforeInsert() {
