@@ -11,6 +11,8 @@ import { SeedModule } from './seed/seed.module';
 import { FilesModule } from './files/files.module';
 import { AuthModule } from './auth/auth.module';
 import { MessagesWsModule } from './messages-ws/messages-ws.module';
+import { FavoritesModule } from './favorites/favorites.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -48,6 +50,10 @@ import { MessagesWsModule } from './messages-ws/messages-ws.module';
     AuthModule,
 
     MessagesWsModule,
+
+    FavoritesModule,
+
+    CartModule,
 
   ],
 })
