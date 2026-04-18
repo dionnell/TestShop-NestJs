@@ -107,4 +107,31 @@ export class CartService {
     await this.cartItemRepository.delete({ user: { id: user.id } });
     return { message: 'Cart cleared' };
   }
+
+  async getCartByUserId(userId: string) {
+    const items = await this.cartItemRepository.find({
+      where: { user: { id: userId } },
+      relations: { product: true },
+      order: { createdAt: 'DESC' },
+    });
+  
+    const formattedItems = items.map((item) => ({
+      id: item.id,
+      quantity: item.quantity,
+      createdAt: item.createdAt,
+      product: {
+        ...item.product,
+        images: item.product.images?.map((img) => img.url) ?? [],
+      },
+      subtotal: item.product.price * item.quantity,
+    }));
+  
+    const total = formattedItems.reduce((sum, item) => sum + item.subtotal, 0);
+  
+    return {
+      count: items.length,
+      total: +total.toFixed(2),
+      items: formattedItems,
+    };
+  }
 }

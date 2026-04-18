@@ -73,4 +73,24 @@ export class FavoritesService {
       })),
     };
   }
+
+  async getFavoritesByUserId(userId: string) {
+  const favorites = await this.favoriteRepository.find({
+    where: { user: { id: userId } },
+    relations: { product: true },
+    order: { createdAt: 'DESC' },
+  });
+
+  return {
+    count: favorites.length,
+    favorites: favorites.map((f) => ({
+      id: f.id,
+      createdAt: f.createdAt,
+      product: {
+        ...f.product,
+        images: f.product.images?.map((img) => img.url) ?? [],
+      },
+    })),
+  };
+}
 }

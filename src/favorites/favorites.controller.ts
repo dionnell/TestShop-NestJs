@@ -3,6 +3,7 @@ import { ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { FavoritesService } from './favorites.service';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
+import { ValidRoles } from 'src/auth/interfaces/valid-roles';
 
 @ApiTags('Favorites')
 @Controller('favorites')
@@ -10,7 +11,7 @@ export class FavoritesController {
   constructor(private readonly favoritesService: FavoritesService) {}
 
   @Get()
-  @Auth()
+  @Auth(ValidRoles.user, ValidRoles.admin)
   @ApiOperation({ summary: 'Get all favorites for the logged-in user' })
   @ApiResponse({ status: 200, description: 'List of favorite products' })
   getFavorites(@GetUser() user: User) {
@@ -18,7 +19,7 @@ export class FavoritesController {
   }
 
   @Post(':productId')
-  @Auth()
+  @Auth(ValidRoles.user, ValidRoles.admin)
   @ApiOperation({ summary: 'Add a product to favorites' })
   @ApiResponse({ status: 201, description: 'Product added to favorites' })
   @ApiResponse({ status: 404, description: 'Product not found' })
@@ -31,7 +32,7 @@ export class FavoritesController {
   }
 
   @Delete(':productId')
-  @Auth()
+  @Auth(ValidRoles.user, ValidRoles.admin)
   @ApiOperation({ summary: 'Remove a product from favorites' })
   @ApiResponse({ status: 200, description: 'Product removed from favorites' })
   @ApiResponse({ status: 404, description: 'Product not found in favorites' })
@@ -40,5 +41,15 @@ export class FavoritesController {
     @GetUser() user: User,
   ) {
     return this.favoritesService.removeFavorite(productId, user);
+  }
+
+  @Get('user/:userId')
+  @Auth(ValidRoles.user, ValidRoles.admin)
+  @ApiOperation({ summary: 'Get favorites by user ID (admin only)' })
+  @ApiResponse({ status: 200, description: 'List of favorites for the given user' })
+  getFavoritesByUserId(
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
+    return this.favoritesService.getFavoritesByUserId(userId);
   }
 }
