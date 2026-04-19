@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Delete, Param, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, ParseUUIDPipe, Body } from '@nestjs/common';
 import { ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { FavoritesService } from './favorites.service';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
 import { ValidRoles } from 'src/auth/interfaces/valid-roles';
+import { AddFavoriteDto } from './dto/add-favorite.dto';
 
 @ApiTags('Favorites')
 @Controller('favorites')
@@ -11,28 +12,28 @@ export class FavoritesController {
   constructor(private readonly favoritesService: FavoritesService) {}
 
   @Get()
-  @Auth(ValidRoles.user, ValidRoles.admin)
+  @Auth()
   @ApiOperation({ summary: 'Get all favorites for the logged-in user' })
   @ApiResponse({ status: 200, description: 'List of favorite products' })
   getFavorites(@GetUser() user: User) {
     return this.favoritesService.getFavorites(user);
   }
-
-  @Post(':productId')
-  @Auth(ValidRoles.user, ValidRoles.admin)
+ 
+  @Post()
+  @Auth()
   @ApiOperation({ summary: 'Add a product to favorites' })
   @ApiResponse({ status: 201, description: 'Product added to favorites' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   @ApiResponse({ status: 409, description: 'Product already in favorites' })
   addFavorite(
-    @Param('productId', ParseUUIDPipe) productId: string,
+    @Body() addFavoriteDto: AddFavoriteDto,
     @GetUser() user: User,
   ) {
-    return this.favoritesService.addFavorite(productId, user);
+    return this.favoritesService.addFavorite(addFavoriteDto.productId, user);
   }
 
   @Delete(':productId')
-  @Auth(ValidRoles.user, ValidRoles.admin)
+  @Auth()
   @ApiOperation({ summary: 'Remove a product from favorites' })
   @ApiResponse({ status: 200, description: 'Product removed from favorites' })
   @ApiResponse({ status: 404, description: 'Product not found in favorites' })
@@ -44,7 +45,7 @@ export class FavoritesController {
   }
 
   @Get('user/:userId')
-  @Auth(ValidRoles.user, ValidRoles.admin)
+  @Auth(ValidRoles.admin)
   @ApiOperation({ summary: 'Get favorites by user ID' })
   @ApiResponse({ status: 200, description: 'List of favorites for the given user' })
   getFavoritesByUserId(

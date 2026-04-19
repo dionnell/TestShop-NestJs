@@ -13,28 +13,27 @@ export class CartController {
   constructor(private readonly cartService: CartService) {}
 
   @Get()
-  @Auth(ValidRoles.user, ValidRoles.admin)
+  @Auth()
   @ApiOperation({ summary: 'Get the cart of the logged-in user' })
   @ApiResponse({ status: 200, description: 'Cart contents with total price' })
   getCart(@GetUser() user: User) {
     return this.cartService.getCart(user);
   }
 
-  @Post(':productId')
-  @Auth(ValidRoles.user, ValidRoles.admin)
-  @ApiOperation({ summary: 'Add a product to the cart (or increment quantity if already present)' })
+  @Post()
+  @Auth()
+  @ApiOperation({ summary: 'Add a product to cart (increments quantity if already present)' })
   @ApiResponse({ status: 201, description: 'Product added or quantity incremented' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   addToCart(
-    @Param('productId', ParseUUIDPipe) productId: string,
     @Body() addToCartDto: AddToCartDto,
     @GetUser() user: User,
   ) {
-    return this.cartService.addToCart(productId, addToCartDto, user);
+    return this.cartService.addToCart(addToCartDto.productId, addToCartDto, user);
   }
 
   @Patch('item/:itemId')
-  @Auth(ValidRoles.user, ValidRoles.admin)
+  @Auth()
   @ApiOperation({ summary: 'Update the quantity of a cart item' })
   @ApiResponse({ status: 200, description: 'Cart item quantity updated' })
   @ApiResponse({ status: 404, description: 'Cart item not found' })
@@ -47,7 +46,7 @@ export class CartController {
   }
 
   @Delete('item/:itemId')
-  @Auth(ValidRoles.user, ValidRoles.admin)
+  @Auth()
   @ApiOperation({ summary: 'Remove a specific item from the cart' })
   @ApiResponse({ status: 200, description: 'Item removed from cart' })
   @ApiResponse({ status: 404, description: 'Cart item not found' })
@@ -59,7 +58,7 @@ export class CartController {
   }
 
   @Delete()
-  @Auth(ValidRoles.user, ValidRoles.admin)
+  @Auth()
   @ApiOperation({ summary: 'Clear all items from the cart' })
   @ApiResponse({ status: 200, description: 'Cart cleared' })
   clearCart(@GetUser() user: User) {
@@ -67,7 +66,7 @@ export class CartController {
   }
 
   @Get('user/:userId')
-  @Auth(ValidRoles.user, ValidRoles.admin)
+  @Auth()
   @ApiOperation({ summary: 'Get cart by user ID' })
   @ApiResponse({ status: 200, description: 'Cart contents for the given user' })
   getCartByUserId(
