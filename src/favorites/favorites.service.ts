@@ -74,23 +74,22 @@ export class FavoritesService {
     };
   }
 
-  async getFavoritesByUserId(userId: string) {
-  const favorites = await this.favoriteRepository.find({
-    where: { user: { id: userId } },
-    relations: { product: true },
-    order: { createdAt: 'DESC' },
-  });
-
-  return {
-    count: favorites.length,
-    favorites: favorites.map((f) => ({
-      id: f.id,
-      createdAt: f.createdAt,
+  async getFavoriteByProductId(productId: string, user: User) {
+    const favorite = await this.favoriteRepository.findOne({
+      where: { user: { id: user.id }, product: { id: productId } },
+      relations: { product: true },
+    });
+  
+    if (!favorite)
+      throw new NotFoundException('Product not found in favorites');
+  
+    return {
+      id: favorite.id,
+      createdAt: favorite.createdAt,
       product: {
-        ...f.product,
-        images: f.product.images?.map((img) => img.url) ?? [],
+        ...favorite.product,
+        images: favorite.product.images?.map((img) => img.url) ?? [],
       },
-    })),
-  };
-}
+    };
+  }
 }

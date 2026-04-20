@@ -3,7 +3,6 @@ import { ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { FavoritesService } from './favorites.service';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
-import { ValidRoles } from 'src/auth/interfaces/valid-roles';
 import { AddFavoriteDto } from './dto/add-favorite.dto';
 
 @ApiTags('Favorites')
@@ -44,13 +43,15 @@ export class FavoritesController {
     return this.favoritesService.removeFavorite(productId, user);
   }
 
-  @Get('user/:userId')
-  @Auth(ValidRoles.admin)
-  @ApiOperation({ summary: 'Get favorites by user ID' })
-  @ApiResponse({ status: 200, description: 'List of favorites for the given user' })
-  getFavoritesByUserId(
-    @Param('userId', ParseUUIDPipe) userId: string,
+  @Get(':productId')
+  @Auth()
+  @ApiOperation({ summary: 'Check if a product is in favorites' })
+  @ApiResponse({ status: 200, description: 'Favorite found' })
+  @ApiResponse({ status: 404, description: 'Product not found in favorites' })
+  getFavoriteByProductId(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @GetUser() user: User,
   ) {
-    return this.favoritesService.getFavoritesByUserId(userId);
+    return this.favoritesService.getFavoriteByProductId(productId, user);
   }
 }
