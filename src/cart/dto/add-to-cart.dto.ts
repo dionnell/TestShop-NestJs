@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID, IsInt, IsPositive, IsOptional } from 'class-validator';
+import { IsUUID, IsInt, IsPositive, IsOptional, IsString, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AddToCartDto {
@@ -9,6 +9,14 @@ export class AddToCartDto {
   })
   @IsUUID()
   productId: string;
+
+  @ApiProperty({
+    description: 'Size of the product',
+    example: 'M',
+  })
+  @IsString()
+  @MinLength(1)
+  size: string;
 
   @ApiProperty({
     description: 'Quantity to add (defaults to 1)',

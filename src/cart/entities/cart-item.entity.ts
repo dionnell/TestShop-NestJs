@@ -13,6 +13,9 @@ export class CartItem {
   @ManyToOne(() => Product, { onDelete: 'CASCADE', eager: true })
   product: Product;
 
+  @Column('text')
+  size: string;
+
   @Column('int', { default: 1 })
   quantity: number;
 

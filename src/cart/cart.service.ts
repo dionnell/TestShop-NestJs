@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -26,52 +27,58 @@ export class CartService {
       order: { createdAt: 'DESC' },
     });
 
-    const formattedItems = items.map((item) => ({
-      id: item.id,
-      quantity: item.quantity,
-      createdAt: item.createdAt,
-      product: {
-        ...item.product,
-        images: item.product.images?.map((img) => img.url) ?? [],
-      },
-      subtotal: item.product.price * item.quantity,
-    }));
-
-    const total = formattedItems.reduce((sum, item) => sum + item.subtotal, 0);
-
-    return {
-      count: items.length,
-      total: +total.toFixed(2),
-      items: formattedItems,
-    };
+    return this.formatCart(items);
   }
 
   async addToCart(productId: string, dto: AddToCartDto, user: User) {
-    // Verify product exists
-    await this.productsService.findOne(productId);
+  const product = await this.productsService.findOne(productId);
 
-    const { quantity = 1 } = dto;
+  // Validar que el size existe en el producto
+  if (!product.sizes.includes(dto.size.toUpperCase())) {
+      throw new BadRequestException(
+        `Size '${dto.size}' is not available for this product. Available sizes: ${product.sizes.join(', ')}`
+      );
+    }
 
-    // If item already in cart, increment quantity
+    const { quantity = 1, size } = dto;
+
+    // Mismo producto + mismo size = incrementar cantidad
     const existing = await this.cartItemRepository.findOne({
-      where: { user: { id: user.id }, product: { id: productId } },
+      where: { 
+        user: { id: user.id }, 
+        product: { id: productId },
+        size: size.toUpperCase(),
+      },
     });
 
     if (existing) {
       existing.quantity += quantity;
       await this.cartItemRepository.save(existing);
-      return { message: 'Cart item quantity updated', productId, quantity: existing.quantity };
+      return { 
+        message: 'Cart item quantity updated', 
+        productId, 
+        size: size.toUpperCase(),
+        quantity: existing.quantity,
+        subtotal: +(product.price * existing.quantity).toFixed(2),
+      };
     }
 
     const cartItem = this.cartItemRepository.create({
       user,
       product: { id: productId } as any,
+      size: size.toUpperCase(),
       quantity,
     });
 
     await this.cartItemRepository.save(cartItem);
 
-    return { message: 'Product added to cart', productId, quantity };
+    return { 
+      message: 'Product added to cart', 
+      productId, 
+      size: size.toUpperCase(),
+      quantity,
+      subtotal: +(product.price * quantity).toFixed(2),
+    };
   }
 
   async updateCartItem(itemId: string, dto: UpdateCartItemDto, user: User) {
@@ -114,24 +121,30 @@ export class CartService {
       relations: { product: true },
       order: { createdAt: 'DESC' },
     });
-  
+
+    return this.formatCart(items);
+  }
+
+  private formatCart(items: CartItem[]) {
     const formattedItems = items.map((item) => ({
       id: item.id,
+      size: item.size,
       quantity: item.quantity,
       createdAt: item.createdAt,
       product: {
         ...item.product,
         images: item.product.images?.map((img) => img.url) ?? [],
       },
-      subtotal: item.product.price * item.quantity,
+      subtotal: +(item.product.price * item.quantity).toFixed(2),
     }));
-  
+
     const total = formattedItems.reduce((sum, item) => sum + item.subtotal, 0);
-  
+
     return {
       count: items.length,
       total: +total.toFixed(2),
       items: formattedItems,
     };
   }
+
 }
