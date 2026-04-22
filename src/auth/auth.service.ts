@@ -8,6 +8,8 @@ import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { LoginUserDto, CreateUserDto } from './dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 
 @Injectable()
@@ -22,9 +24,7 @@ export class AuthService {
 
 
   async create( createUserDto: CreateUserDto) {
-    
     try {
-
       const { password, ...userData } = createUserDto;
       
       const user = this.userRepository.create({
@@ -39,21 +39,17 @@ export class AuthService {
         user: user,
         token: this.getJwtToken({ id: user.id })
       };
-      // TODO: Retornar el JWT de acceso
-
     } catch (error) {
       this.handleDBErrors(error);
     }
-
   }
 
   async login( loginUserDto: LoginUserDto ) {
-
     const { password, email } = loginUserDto;
 
     const user = await this.userRepository.findOne({
       where: { email },
-      select: { email: true, password: true, id: true, fullName: true, isActive: true, roles: true}
+      select: { email: true, password: true, id: true, fullName: true, isActive: true, roles: true, phone: true, address: true, createdAt: true }
     });
 
     if ( !user ) 
@@ -71,33 +67,61 @@ export class AuthService {
   }
 
   async checkAuthStatus( user: User ){
+    // Fetch fresh user data including new fields
+    const freshUser = await this.userRepository.findOne({
+      where: { id: user.id },
+      select: { id: true, email: true, fullName: true, isActive: true, roles: true, phone: true, address: true, createdAt: true }
+    });
 
     return {
-      user: user,
+      user: freshUser,
       token: this.getJwtToken({ id: user.id })
     };
-
   }
 
+  async updateProfile( user: User, updateProfileDto: UpdateProfileDto ) {
+    await this.userRepository.update(user.id, updateProfileDto);
 
-  
+    const updatedUser = await this.userRepository.findOne({
+      where: { id: user.id },
+      select: { id: true, email: true, fullName: true, isActive: true, roles: true, phone: true, address: true, createdAt: true }
+    });
+
+    return {
+      user: updatedUser,
+      token: this.getJwtToken({ id: user.id })
+    };
+  }
+
+  async changePassword( user: User, changePasswordDto: ChangePasswordDto ) {
+    const { currentPassword, newPassword } = changePasswordDto;
+
+    // Fetch user with password to verify current password
+    const userWithPassword = await this.userRepository.findOne({
+      where: { id: user.id },
+      select: { id: true, password: true }
+    });
+
+    if ( !bcrypt.compareSync( currentPassword, userWithPassword.password ) )
+      throw new UnauthorizedException('Current password is incorrect');
+
+    await this.userRepository.update(user.id, {
+      password: bcrypt.hashSync( newPassword, 10 )
+    });
+
+    return { message: 'Password updated successfully' };
+  }
+
   private getJwtToken( payload: JwtPayload ) {
-    const token = this.jwtService.sign( payload );
-    return token;
-
+    return this.jwtService.sign( payload );
   }
 
   private handleDBErrors( error: any ): never {
-
-
     if ( error.code === '23505' ) 
       throw new BadRequestException( error.detail );
 
     console.log(error)
-
     throw new InternalServerErrorException('Please check server logs');
-
   }
-
 
 }

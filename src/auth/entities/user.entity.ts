@@ -1,4 +1,4 @@
-import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { BeforeInsert, BeforeUpdate, Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Product } from '../../products/entities';
 import { CartItem } from 'src/cart/entities/cart-item.entity';
 import { Favorite } from 'src/favorites/entities/favorite.entity';
@@ -23,6 +23,12 @@ export class User {
     @Column('text')
     fullName: string;
 
+    @Column('text', { nullable: true })
+    phone: string;
+
+    @Column('text', { nullable: true })
+    address: string;
+
     @Column('bool', {
         default: true
     })
@@ -33,6 +39,9 @@ export class User {
         default: ['user']
     })
     roles: string[];
+
+    @CreateDateColumn()
+    createdAt: Date;
 
     @OneToMany(
         () => Product,

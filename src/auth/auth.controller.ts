@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Headers, SetMetadata } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Req, Headers } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags } from '@nestjs/swagger';
-
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { IncomingHttpHeaders } from 'http';
 
 import { AuthService } from './auth.service';
@@ -12,13 +11,13 @@ import { CreateUserDto, LoginUserDto } from './dto';
 import { User } from './entities/user.entity';
 import { UserRoleGuard } from './guards/user-role.guard';
 import { ValidRoles } from './interfaces';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-
 
   @Post('register')
   createUser(@Body() createUserDto: CreateUserDto ) {
@@ -32,12 +31,32 @@ export class AuthController {
 
   @Get('check-status')
   @Auth()
-  checkAuthStatus(
-    @GetUser() user: User
-  ) {
+  checkAuthStatus(@GetUser() user: User) {
     return this.authService.checkAuthStatus( user );
   }
 
+  @Patch('profile')
+  @Auth()
+  @ApiOperation({ summary: 'Update user profile (name, phone, address)' })
+  @ApiResponse({ status: 200, description: 'Profile updated, returns updated user + new token' })
+  updateProfile(
+    @GetUser() user: User,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile( user, updateProfileDto );
+  }
+
+  @Patch('change-password')
+  @Auth()
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 401, description: 'Current password incorrect' })
+  changePassword(
+    @GetUser() user: User,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword( user, changePasswordDto );
+  }
 
   @Get('private')
   @UseGuards( AuthGuard() )
@@ -45,51 +64,22 @@ export class AuthController {
     @Req() request: Express.Request,
     @GetUser() user: User,
     @GetUser('email') userEmail: string,
-    
     @RawHeaders() rawHeaders: string[],
     @Headers() headers: IncomingHttpHeaders,
   ) {
-
-
-    return {
-      ok: true,
-      message: 'Hola Mundo Private',
-      user,
-      userEmail,
-      rawHeaders,
-      headers
-    }
+    return { ok: true, message: 'Hola Mundo Private', user, userEmail, rawHeaders, headers }
   }
-
-
-  // @SetMetadata('roles', ['admin','super-user'])
 
   @Get('private2')
   @RoleProtected( ValidRoles.superUser, ValidRoles.admin )
   @UseGuards( AuthGuard(), UserRoleGuard )
-  privateRoute2(
-    @GetUser() user: User
-  ) {
-
-    return {
-      ok: true,
-      user
-    }
+  privateRoute2(@GetUser() user: User) {
+    return { ok: true, user }
   }
-
 
   @Get('private3')
   @Auth( ValidRoles.admin )
-  privateRoute3(
-    @GetUser() user: User
-  ) {
-
-    return {
-      ok: true,
-      user
-    }
+  privateRoute3(@GetUser() user: User) {
+    return { ok: true, user }
   }
-
-
-
 }
