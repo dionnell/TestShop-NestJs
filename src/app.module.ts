@@ -15,6 +15,7 @@ import { FavoritesModule } from './favorites/favorites.module';
 import { CartModule } from './cart/cart.module';
 import { PaymentModule } from './payment/Payment.module';
 
+
 @Module({
   imports: [
     ConfigModule.forRoot(),
