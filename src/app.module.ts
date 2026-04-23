@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { MessagesWsModule } from './messages-ws/messages-ws.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { CartModule } from './cart/cart.module';
+import { PaymentModule } from './payment/Payment.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { CartModule } from './cart/cart.module';
 
     CartModule,
 
+    PaymentModule,
   ],
 })
 export class AppModule {}

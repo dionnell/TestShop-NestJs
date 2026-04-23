@@ -46,6 +46,7 @@
     "rimraf": "^5.0.5",
     "rxjs": "^7.8.1",
     "socket.io": "^4.7.5",
+    "transbank-sdk": "^6.1.1",
     "typeorm": "^0.3.20",
     "uuid": "^9.0.1"
   },
