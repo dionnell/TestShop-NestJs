@@ -13,7 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { MessagesWsModule } from './messages-ws/messages-ws.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { CartModule } from './cart/cart.module';
-import { PaymentModule } from './payment/Payment.module';
+import { PaymentModule } from './payment/payment.module';
 
 
 @Module({
