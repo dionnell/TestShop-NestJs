@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Delete, Param, ParseUUIDPipe, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, ParseUUIDPipe, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { FavoritesService } from './favorites.service';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
 import { AddFavoriteDto } from './dto/add-favorite.dto';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { ValidRoles } from 'src/auth/interfaces/valid-roles';
 
 @ApiTags('Favorites')
 @Controller('favorites')
@@ -43,15 +45,11 @@ export class FavoritesController {
     return this.favoritesService.removeFavorite(productId, user);
   }
 
-  @Get(':productId')
-  @Auth()
-  @ApiOperation({ summary: 'Check if a product is in favorites' })
-  @ApiResponse({ status: 200, description: 'Favorite found' })
-  @ApiResponse({ status: 404, description: 'Product not found in favorites' })
-  getFavoriteByProductId(
-    @Param('productId', ParseUUIDPipe) productId: string,
-    @GetUser() user: User,
+  @Get()
+  @Auth(ValidRoles.admin)
+  getGroupFavorite(
+    @Query() paginationDto: PaginationDto
   ) {
-    return this.favoritesService.getFavoriteByProductId(productId, user);
+    return this.favoritesService.getGroupFavorite(paginationDto);
   }
 }

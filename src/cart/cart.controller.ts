@@ -5,7 +5,6 @@ import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import { ValidRoles } from 'src/auth/interfaces/valid-roles';
 
 @ApiTags('Cart')
 @Controller('cart')

@@ -4,10 +4,11 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Favorite } from './entities/favorite.entity';
 import { User } from '../auth/entities/user.entity';
 import { ProductsService } from '../products/products.service';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 @Injectable()
 export class FavoritesService {
@@ -74,22 +75,47 @@ export class FavoritesService {
     };
   }
 
-  async getFavoriteByProductId(productId: string, user: User) {
-    const favorite = await this.favoriteRepository.findOne({
-      where: { user: { id: user.id }, product: { id: productId } },
-      relations: { product: true },
-    });
-  
-    if (!favorite)
+  async getGroupFavorite(paginationDto: PaginationDto) {
+    const {
+      limit = 12,
+      offset = 0,      
+      q: query,
+    } = paginationDto;
+
+    let queryBuilder = this.favoriteRepository
+      .createQueryBuilder('favorite')
+      .leftJoinAndSelect('favorite.product', 'product')
+      .groupBy('product.id')
+      .addGroupBy('favorite.id')
+      .addGroupBy('favorite.createdAt')
+      .addSelect('COUNT(favorite.id) OVER (PARTITION BY product.id)', 'favoriteCount')
+      .orderBy('COUNT(favorite.id)', 'DESC')
+      .take(limit)
+      .skip(offset);
+
+    if (query) {
+      queryBuilder = queryBuilder.andWhere('product.title ILike :query', {
+        query: `%${query}%`,
+      });
+    }
+
+    const favorites = await queryBuilder.getMany();
+
+    if (favorites.length === 0) {
       throw new NotFoundException('Product not found in favorites');
-  
+    }
+
     return {
-      id: favorite.id,
-      createdAt: favorite.createdAt,
-      product: {
-        ...favorite.product,
-        images: favorite.product.images?.map((img) => img.url) ?? [],
-      },
+      count: favorites.length,
+      favorites: favorites.map((favorite: any) => ({
+        id: favorite.id,
+        createdAt: favorite.createdAt,
+        favoriteCount: favorite.favoriteCount || 0,
+        product: {
+          ...favorite.product,
+          images: favorite.product.images?.map((img: any) => img.url) ?? [],
+        },
+      })),
     };
   }
 }
