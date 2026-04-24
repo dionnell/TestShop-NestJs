@@ -52,11 +52,17 @@ export class PaymentService {
 
   // ── Paso 1: leer carrito → crear transacción en Transbank → guardar payment con items ──
   async createTransaction(user: User) {
-    // Obtener items del carrito del usuario
-    const cartItems = await this.cartItemRepository.find({
-      where: { user: { id: user.id } },
-      relations: { product: true },
-    });
+    this.logger.log(`Creating transaction for user: ${user.id}`);
+
+    // QueryBuilder para evitar problemas con relaciones anidadas en el where
+    const cartItems = await this.cartItemRepository
+      .createQueryBuilder('cartItem')
+      .leftJoinAndSelect('cartItem.product', 'product')
+      .leftJoinAndSelect('product.images', 'images')
+      .where('cartItem.userId = :userId', { userId: user.id })
+      .getMany();
+
+    this.logger.log(`Cart items found: ${cartItems.length}`);
 
     if (cartItems.length === 0) {
       throw new BadRequestException('El carrito está vacío');
@@ -128,7 +134,11 @@ export class PaymentService {
 
       // Si fue aprobado, vaciar el carrito del usuario
       if (isApproved) {
-        await this.cartItemRepository.delete({ user: { id: payment.user.id } });
+        await this.cartItemRepository
+          .createQueryBuilder()
+          .delete()
+          .where('userId = :userId', { userId: payment.user.id })
+          .execute();
       }
 
       return {
