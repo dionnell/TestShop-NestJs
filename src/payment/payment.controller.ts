@@ -21,6 +21,7 @@ export class PaymentController {
   @ApiOperation({ summary: 'Initiate Webpay transaction from cart contents' })
   @ApiResponse({ status: 201, description: 'Returns Webpay url, token and amount' })
   createTransaction(@GetUser() user: User) {
+    console.log('User ID:', user.id);
     return this.paymentService.createTransaction(user);
   }
 

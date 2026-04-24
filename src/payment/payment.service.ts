@@ -59,7 +59,8 @@ export class PaymentService {
       .createQueryBuilder('cartItem')
       .leftJoinAndSelect('cartItem.product', 'product')
       .leftJoinAndSelect('product.images', 'images')
-      .where('cartItem.userId = :userId', { userId: user.id })
+      .innerJoin('cartItem.user', 'user')
+      .where('user.id = :userId', { userId: user.id })
       .getMany();
 
     this.logger.log(`Cart items found: ${cartItems.length}`);
