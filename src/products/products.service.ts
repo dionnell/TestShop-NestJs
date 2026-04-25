@@ -106,7 +106,7 @@ export class ProductsService {
         title: query ? ILike(`%${query}%`) : undefined,
       },
     });
-
+ 
     return {
       count: totalProducts,
       pages: Math.ceil(totalProducts / limit),

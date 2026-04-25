@@ -104,9 +104,17 @@ export class FavoritesService {
     if (favorites.length === 0) {
       throw new NotFoundException('Product not found in favorites');
     }
+    const totalProducts = await this.favoriteRepository.count({
+      where: {
+        product: {
+          title: query ? ILike(`%${query}%`) : undefined,
+        },
+      },
+    });
 
     return {
       count: favorites.length,
+      pages: Math.ceil(totalProducts / limit),
       favorites: favorites.map((favorite: any) => ({
         id: favorite.id,
         createdAt: favorite.createdAt,
