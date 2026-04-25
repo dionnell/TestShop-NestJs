@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Favorite } from './entities/favorite.entity';
 import { User } from '../auth/entities/user.entity';
 import { ProductsService } from '../products/products.service';
@@ -76,37 +76,48 @@ export class FavoritesService {
   }
 
   async getGroupFavorite(paginationDto: PaginationDto) {
-    const {
-      limit = 12,
-      offset = 0,
-      q: query,
-    } = paginationDto;
-  
-    // Partimos desde productos para incluir los que tienen 0 favoritos
-    const productRepo = this.favoriteRepository.manager.getRepository('products');
-  
-    let queryBuilder = productRepo
+    const { limit = 12, offset = 0, q: query } = paginationDto;
+
+    // Raw query para contar favoritos por producto
+    const qb = this.favoriteRepository
+      .createQueryBuilder('favorite')
+      .select('favorite.productId', 'productId')
+      .addSelect('COUNT(favorite.id)', 'favoriteCount')
+      .groupBy('favorite.productId');
+
+    if (query) {
+      qb.innerJoin('favorite.product', 'product')
+        .andWhere('product.title ILike :query', { query: `%${query}%` });
+    }
+
+    const countsByProduct: { productId: string; favoriteCount: string }[] =
+      await qb.getRawMany();
+
+    const countMap = new Map(
+      countsByProduct.map((r) => [r.productId, Number(r.favoriteCount)])
+    );
+
+    // Traer todos los productos con paginación
+    const productRepo = this.favoriteRepository.manager.getRepository('Product');
+
+    let productQb = productRepo
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.images', 'images')
-      .loadRelationCountAndMap('product.favoriteCount', 'product.favorites')
-      .orderBy('product.favoriteCount', 'DESC')
       .take(limit)
       .skip(offset);
-  
+
     if (query) {
-      queryBuilder = queryBuilder.where('product.title ILike :query', {
-        query: `%${query}%`,
-      });
+      productQb = productQb.where('product.title ILike :query', { query: `%${query}%` });
     }
-  
-    const [products, total] = await queryBuilder.getManyAndCount();
-  
+
+    const [products, total] = await productQb.getManyAndCount();
+
     return {
       count: products.length,
       pages: Math.ceil(total / limit),
       favorites: (products as any[]).map((product) => ({
         id: product.id,
-        favoriteCount: product.favoriteCount ?? 0,
+        favoriteCount: countMap.get(product.id) ?? 0,
         product: {
           ...product,
           images: product.images?.map((img: any) => img.url) ?? [],
