@@ -45,7 +45,7 @@ export class FavoritesController {
     return this.favoritesService.removeFavorite(productId, user);
   }
 
-  @Get()
+  @Get('admin/group')
   @Auth(ValidRoles.admin)
   getGroupFavorite(
     @Query() paginationDto: PaginationDto
