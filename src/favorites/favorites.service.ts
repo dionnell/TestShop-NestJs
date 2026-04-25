@@ -83,7 +83,8 @@ export class FavoritesService {
       .createQueryBuilder('favorite')
       .select('favorite.productId', 'productId')
       .addSelect('COUNT(favorite.id)', 'favoriteCount')
-      .groupBy('favorite.productId');
+      .groupBy('favorite.productId')
+      .orderBy('favoriteCount', 'DESC');
 
     if (query) {
       qb.innerJoin('favorite.product', 'product')
