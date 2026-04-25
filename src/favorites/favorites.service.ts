@@ -78,50 +78,38 @@ export class FavoritesService {
   async getGroupFavorite(paginationDto: PaginationDto) {
     const {
       limit = 12,
-      offset = 0,      
+      offset = 0,
       q: query,
     } = paginationDto;
-
-    let queryBuilder = this.favoriteRepository
-      .createQueryBuilder('favorite')
-      .leftJoinAndSelect('favorite.product', 'product')
-      .groupBy('product.id')
-      .addGroupBy('favorite.id')
-      .addGroupBy('favorite.createdAt')
-      .addSelect('COUNT(favorite.id) OVER (PARTITION BY product.id)', 'favoriteCount')
-      .orderBy('COUNT(favorite.id)', 'DESC')
+  
+    // Partimos desde productos para incluir los que tienen 0 favoritos
+    const productRepo = this.favoriteRepository.manager.getRepository('products');
+  
+    let queryBuilder = productRepo
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.images', 'images')
+      .loadRelationCountAndMap('product.favoriteCount', 'product.favorites')
+      .orderBy('product.favoriteCount', 'DESC')
       .take(limit)
       .skip(offset);
-
+  
     if (query) {
-      queryBuilder = queryBuilder.andWhere('product.title ILike :query', {
+      queryBuilder = queryBuilder.where('product.title ILike :query', {
         query: `%${query}%`,
       });
     }
-
-    const favorites = await queryBuilder.getMany();
-
-    if (favorites.length === 0) {
-      throw new NotFoundException('Product not found in favorites');
-    }
-    const totalProducts = await this.favoriteRepository.count({
-      where: {
-        product: {
-          title: query ? ILike(`%${query}%`) : undefined,
-        },
-      },
-    });
-
+  
+    const [products, total] = await queryBuilder.getManyAndCount();
+  
     return {
-      count: favorites.length,
-      pages: Math.ceil(totalProducts / limit),
-      favorites: favorites.map((favorite: any) => ({
-        id: favorite.id,
-        createdAt: favorite.createdAt,
-        favoriteCount: favorite.favoriteCount || 0,
+      count: products.length,
+      pages: Math.ceil(total / limit),
+      favorites: (products as any[]).map((product) => ({
+        id: product.id,
+        favoriteCount: product.favoriteCount ?? 0,
         product: {
-          ...favorite.product,
-          images: favorite.product.images?.map((img: any) => img.url) ?? [],
+          ...product,
+          images: product.images?.map((img: any) => img.url) ?? [],
         },
       })),
     };

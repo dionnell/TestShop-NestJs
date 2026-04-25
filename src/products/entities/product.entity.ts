@@ -3,6 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { ProductImage } from './';
 import { User } from '../../auth/entities/user.entity';
+import { Favorite } from '../../favorites/entities/favorite.entity';
 
 @Entity({ name: 'products' })
 export class Product {
@@ -105,6 +106,8 @@ export class Product {
     )
     user: User
 
+    @OneToMany(() => Favorite, (favorite) => favorite.product)
+    favorites: Favorite[];
 
     @BeforeInsert()
     checkSlugInsert() {
