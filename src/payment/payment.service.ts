@@ -33,7 +33,7 @@ export class PaymentService {
 
     private readonly configService: ConfigService,
   ) {
-    const isProduction = configService.get('STAGE') === 'prod';
+    const isProduction = configService.get('TRANSBANK_ENV') === 'production';
 
     this.tx = new WebpayPlus.Transaction(
       isProduction
