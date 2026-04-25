@@ -84,7 +84,7 @@ export class FavoritesService {
       .select('favorite.productId', 'productId')
       .addSelect('COUNT(favorite.id)', 'favoriteCount')
       .groupBy('favorite.productId')
-      .orderBy('favoriteCount', 'DESC');
+
 
     if (query) {
       qb.innerJoin('favorite.product', 'product')
@@ -123,7 +123,8 @@ export class FavoritesService {
           ...product,
           images: product.images?.map((img: any) => img.url) ?? [],
         },
-      })),
+      }))
+      .sort((a, b) => b.favoriteCount - a.favoriteCount),
     };
   }
 }
