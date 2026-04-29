@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { PaymentService } from './payment.service';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
+import { ValidRoles } from 'src/auth/interfaces';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -64,5 +65,16 @@ export class PaymentController {
     @GetUser() user: User,
   ) {
     return this.paymentService.getPaymentById(id, user);
+  }
+
+  // Historial de pagos de otro usuario por ID (solo admin)
+  @Get('user/:userId/payments')
+  @Auth(ValidRoles.admin) // solo admin puede ver historial de otro usuario
+  @ApiOperation({ summary: 'Get payment history by user ID' })
+  @ApiResponse({ status: 200, description: 'Payment history for the given user' })
+  getPaymentsByUserId(
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
+    return this.paymentService.getPaymentsByUserId(userId);
   }
 }

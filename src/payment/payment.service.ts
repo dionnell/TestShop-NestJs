@@ -50,7 +50,7 @@ export class PaymentService {
     );
   }
 
-  // ── Paso 1: leer carrito → crear transacción en Transbank → guardar payment con items ──
+  //  Paso 1: leer carrito → crear transacción en Transbank → guardar payment con items 
   async createTransaction(user: User) {
     this.logger.log(`Creating transaction for user: ${user.id}`);
 
@@ -116,7 +116,7 @@ export class PaymentService {
     }
   }
 
-  // ── Paso 2: Transbank redirige aquí → confirmamos → vaciamos carrito si fue aprobado ──
+  //  Paso 2: Transbank redirige aquí → confirmamos → vaciamos carrito si fue aprobado 
   async confirmTransaction(tokenWs: string) {
     if (!tokenWs) throw new BadRequestException('Token no recibido');
 
@@ -155,7 +155,7 @@ export class PaymentService {
     }
   }
 
-  // ── Historial de pagos del usuario con sus items ──
+  //  Historial de pagos del usuario con sus items 
   async getUserPayments(user: User) {
     return this.paymentRepository.find({
       where: { user: { id: user.id } },
@@ -163,7 +163,7 @@ export class PaymentService {
     });
   }
 
-  // ── Detalle de un pago con sus items ──
+  //  Detalle de un pago con sus items 
   async getPaymentById(id: string, user: User) {
     const payment = await this.paymentRepository.findOne({
       where: { id, user: { id: user.id } },
@@ -171,4 +171,17 @@ export class PaymentService {
     if (!payment) throw new NotFoundException('Pago no encontrado');
     return payment;
   }
+
+  async getPaymentsByUserId(userId: string) {
+  const payments = await this.paymentRepository.find({
+    where: { user: { id: userId } },
+    order: { createdAt: 'DESC' },
+  });
+
+  if (!payments.length) {
+    throw new NotFoundException(`No se encontraron pagos para el usuario ${userId}`);
+  }
+
+  return payments;
+}
 }
