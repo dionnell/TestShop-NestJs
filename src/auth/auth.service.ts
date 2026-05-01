@@ -128,6 +128,14 @@ export class AuthService {
     });
   }
 
+  async updateUserById(id: string, dto: UpdateProfileDto) {
+    await this.userRepository.update(id, dto);
+    return this.userRepository.findOne({
+      where: { id },
+      select: { id: true, email: true, fullName: true, isActive: true, roles: true, phone: true, address: true, createdAt: true }
+    });
+  }
+
   private getJwtToken( payload: JwtPayload ) {
     return this.jwtService.sign( payload );
   }

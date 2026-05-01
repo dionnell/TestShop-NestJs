@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, Req, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Req, Headers, Param, ParseUUIDPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { IncomingHttpHeaders } from 'http';
@@ -77,6 +77,15 @@ export class AuthController {
     @Headers() headers: IncomingHttpHeaders,
   ) {
     return { ok: true, message: 'Hola Mundo Private', user, userEmail, rawHeaders, headers }
+  }
+
+  @Patch('users/:id')
+  @Auth(ValidRoles.admin)
+  updateUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.authService.updateUserById(id, updateProfileDto);
   }
 
   @Get('private2')
