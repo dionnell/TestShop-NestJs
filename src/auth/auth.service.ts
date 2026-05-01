@@ -10,6 +10,7 @@ import { LoginUserDto, CreateUserDto } from './dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { AdminUpdateProfileDto } from './dto/admin-update-profile.dto';
 
 
 @Injectable()
@@ -128,7 +129,7 @@ export class AuthService {
     });
   }
 
-  async updateUserById(id: string, dto: UpdateProfileDto) {
+  async updateUserById(id: string, dto: AdminUpdateProfileDto) {
     await this.userRepository.update(id, dto);
     return this.userRepository.findOne({
       where: { id },

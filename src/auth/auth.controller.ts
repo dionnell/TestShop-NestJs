@@ -13,6 +13,7 @@ import { UserRoleGuard } from './guards/user-role.guard';
 import { ValidRoles } from './interfaces';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { AdminUpdateProfileDto } from './dto/admin-update-profile.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -83,7 +84,7 @@ export class AuthController {
   @Auth(ValidRoles.admin)
   updateUser(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateProfileDto: UpdateProfileDto,
+    @Body() updateProfileDto: AdminUpdateProfileDto,
   ) {
     return this.authService.updateUserById(id, updateProfileDto);
   }

@@ -1,7 +1,7 @@
 import { IsString, IsOptional, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class UpdateProfileDto {
+export class AdminUpdateProfileDto {
 
     @ApiProperty({ description: 'Full name of the user', example: 'John Doe' })
     @IsString()
@@ -19,4 +19,18 @@ export class UpdateProfileDto {
     @IsOptional()
     address?: string;
 
+    @ApiProperty({ description: 'Email address', example: 'john.doe@example.com' })
+    @IsString()
+    @IsOptional()
+    email?: string;
+
+    @ApiProperty({ description: 'Roles', example: 'user, admin' })
+    @IsString()
+    @IsOptional()
+    roles?: string[];
+
+    @ApiProperty({ description: 'Active', example: 'true or false' })
+    @IsString()
+    @IsOptional()
+    isActive?: boolean;
 }
