@@ -130,13 +130,18 @@ export class AuthService {
   }
 
   async updateUserById(id: string, dto: AdminUpdateProfileDto) {
-    const updateData = { ...dto };
+    const updateData: Partial<User> = { ...dto } as any;
+
     if (updateData.email) {
         updateData.email = updateData.email.toLowerCase().trim();
     }
-  
+
+    if ((dto as any).password) {
+        updateData.password = bcrypt.hashSync((dto as any).password, 10);
+    }
+
     await this.userRepository.update(id, updateData);
-    
+
     return this.userRepository.findOne({
         where: { id },
         select: {

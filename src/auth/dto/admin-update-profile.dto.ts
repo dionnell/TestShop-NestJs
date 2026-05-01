@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength, IsBoolean, IsArray } from 'class-validator';
+import { IsString, IsOptional, MinLength, IsBoolean, IsArray, MaxLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
@@ -40,4 +40,15 @@ export class AdminUpdateProfileDto {
         return value;
     })
     isActive?: boolean;
+
+    @ApiProperty({ description: 'New password', example: 'NewPass123' })
+    @IsString()
+    @MinLength(6)
+    @MaxLength(50)
+    @Matches(
+        /(?:(?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+        message: 'Password must have uppercase, lowercase and a number'
+    })
+    @IsOptional()
+    password?: string;
 }
