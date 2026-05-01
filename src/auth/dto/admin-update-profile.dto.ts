@@ -1,5 +1,6 @@
-import { IsString, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsOptional, MinLength, IsBoolean, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class AdminUpdateProfileDto {
 
@@ -24,13 +25,19 @@ export class AdminUpdateProfileDto {
     @IsOptional()
     email?: string;
 
-    @ApiProperty({ description: 'Roles', example: 'user, admin' })
-    @IsString()
+    @ApiProperty({ description: 'Roles', example: ['user', 'admin'] })
+    @IsArray()
+    @IsString({ each: true })
     @IsOptional()
     roles?: string[];
 
-    @ApiProperty({ description: 'Active', example: 'true or false' })
-    @IsString()
+    @ApiProperty({ description: 'Active status', example: true })
+    @IsBoolean()
     @IsOptional()
+    @Transform(({ value }) => {
+        if (value === 'true') return true;
+        if (value === 'false') return false;
+        return value;
+    })
     isActive?: boolean;
 }

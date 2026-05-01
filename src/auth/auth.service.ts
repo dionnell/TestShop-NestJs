@@ -130,10 +130,25 @@ export class AuthService {
   }
 
   async updateUserById(id: string, dto: AdminUpdateProfileDto) {
-    await this.userRepository.update(id, dto);
+    const updateData = { ...dto };
+    if (updateData.email) {
+        updateData.email = updateData.email.toLowerCase().trim();
+    }
+  
+    await this.userRepository.update(id, updateData);
+    
     return this.userRepository.findOne({
-      where: { id },
-      select: { id: true, email: true, fullName: true, isActive: true, roles: true, phone: true, address: true, createdAt: true }
+        where: { id },
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            isActive: true,
+            roles: true,
+            phone: true,
+            address: true,
+            createdAt: true,
+        }
     });
   }
 
