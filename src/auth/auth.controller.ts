@@ -58,6 +58,15 @@ export class AuthController {
     return this.authService.changePassword( user, changePasswordDto );
   }
 
+  @Get('users')
+  @Auth(ValidRoles.admin)
+  @ApiOperation({ summary: 'Get all users (admin only)' })
+  @ApiResponse({ status: 200, description: 'List of all users' })
+  @ApiResponse({ status: 403, description: 'Forbidden. Admin role required.' })
+  getAllUsers() {
+    return this.authService.getAllUsers();
+  }
+
   @Get('private')
   @UseGuards( AuthGuard() )
   testingPrivateRoute(

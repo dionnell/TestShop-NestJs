@@ -112,6 +112,22 @@ export class AuthService {
     return { message: 'Password updated successfully' };
   }
 
+  async getAllUsers() {
+    return this.userRepository.find({
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        isActive: true,
+        roles: true,
+        phone: true,
+        address: true,
+        createdAt: true,
+      },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   private getJwtToken( payload: JwtPayload ) {
     return this.jwtService.sign( payload );
   }
