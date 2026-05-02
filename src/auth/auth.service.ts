@@ -135,11 +135,17 @@ export class AuthService {
         createdAt: true,
       },
       order: { createdAt: 'DESC' },
-      where: query ? { fullName: ILike(`%${query}%`) } : undefined,
+      where: query ? [
+        { fullName: ILike(`%${query}%`) },
+        { email: ILike(`%${query}%`) },
+      ] : undefined,
     });
 
     const totalUsers = await this.userRepository.count({
-      where: query ? { fullName: ILike(`%${query}%`) } : undefined,
+      where: query ? [
+        { fullName: ILike(`%${query}%`) },
+        { email: ILike(`%${query}%`) },
+      ] : undefined,
     });
 
     return {
