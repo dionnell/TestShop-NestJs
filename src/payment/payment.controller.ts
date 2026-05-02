@@ -7,6 +7,7 @@ import { PaymentService } from './payment.service';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
 import { ValidRoles } from 'src/auth/interfaces';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -54,6 +55,15 @@ export class PaymentController {
   @ApiOperation({ summary: 'Get payment history with items for the logged-in user' })
   getUserPayments(@GetUser() user: User) {
     return this.paymentService.getUserPayments(user);
+  }
+
+  // Detalle de los pagos de los usuarios (solo admin) con paginación y búsqueda por email
+  @Get('admin/all')
+  @Auth(ValidRoles.admin)
+  @ApiOperation({ summary: 'Get all payments (admin only)' })
+  @ApiResponse({ status: 200, description: 'All payments' })
+  getAllPayments(@Query() paginationDto: PaginationDto) {
+    return this.paymentService.getAllPayments(paginationDto);
   }
 
   // Detalle de un pago con sus items

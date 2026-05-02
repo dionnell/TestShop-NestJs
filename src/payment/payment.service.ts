@@ -15,6 +15,7 @@ import { Payment } from './entities/payment.entity';
 import { PaymentItem } from './entities/payment-item.entity';
 import { User } from '../auth/entities/user.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 @Injectable()
 export class PaymentService {
@@ -161,6 +162,34 @@ export class PaymentService {
       where: { user: { id: user.id } },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  // detalle de todos los pagos de los usuarios (solo admin) con paginación y búsqueda por email
+  async getAllPayments(paginationDto: PaginationDto) {
+    const { limit = 12, offset = 0, q: query } = paginationDto
+
+    const payments = await this.paymentRepository.find({
+      where: query
+        ? [{ user: { email: query } }, 
+        {user: {fullName: query }}]
+        : undefined,
+      order: { createdAt: 'DESC' },
+      take: limit,
+      skip: offset,
+    });
+
+    const totalPayments = await this.paymentRepository.count({
+      where: query
+        ? [{ user: { email: query } }, 
+        {user: {fullName: query }}]
+        : undefined,
+    });
+
+    return {
+      count: totalPayments,
+      pages: Math.ceil(totalPayments / limit),
+      payments,
+    }
   }
 
   //  Detalle de un pago con sus items 
