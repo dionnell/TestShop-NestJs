@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, Req, Headers, Param, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Req, Headers, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { IncomingHttpHeaders } from 'http';
@@ -14,6 +14,7 @@ import { ValidRoles } from './interfaces';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AdminUpdateProfileDto } from './dto/admin-update-profile.dto';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -64,9 +65,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Get all users (admin only)' })
   @ApiResponse({ status: 200, description: 'List of all users' })
   @ApiResponse({ status: 403, description: 'Forbidden. Admin role required.' })
-  getAllUsers() {
-    return this.authService.getAllUsers();
-  }
+  getAllUsers(@Query() paginationDto: PaginationDto) {
+    return this.authService.getAllUsers(paginationDto);
+  } 
 
   @Get('private')
   @UseGuards( AuthGuard() )

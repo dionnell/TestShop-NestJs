@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 
 import * as bcrypt from 'bcrypt';
 
@@ -11,6 +11,7 @@ import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AdminUpdateProfileDto } from './dto/admin-update-profile.dto';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 
 @Injectable()
@@ -113,8 +114,16 @@ export class AuthService {
     return { message: 'Password updated successfully' };
   }
 
-  async getAllUsers() {
-    return this.userRepository.find({
+  async getAllUsers(paginationDto: PaginationDto) {
+    const {
+      limit = 12,
+      offset = 0,
+      q: query,
+    } = paginationDto
+
+    const users = await this.userRepository.find({
+      take: limit,
+      skip: offset,
       select: {
         id: true,
         email: true,
@@ -126,7 +135,18 @@ export class AuthService {
         createdAt: true,
       },
       order: { createdAt: 'DESC' },
+      where: query ? { fullName: ILike(`%${query}%`) } : undefined,
     });
+
+    const totalUsers = await this.userRepository.count({
+      where: query ? { fullName: ILike(`%${query}%`) } : undefined,
+    });
+
+    return {
+      count: totalUsers,
+      pages: Math.ceil(totalUsers / limit),
+      users,
+    }
   }
 
   async updateUserById(id: string, dto: AdminUpdateProfileDto) {
