@@ -32,6 +32,15 @@ export class PaginationDto {
   gender?: 'men' | 'women' | 'unisex' | 'kid' | '';
 
   @ApiProperty({
+    default: '',
+    description: 'Filter results by status',
+    enum: ['approved', 'pending', 'failed', 'cancelled'],
+    example: 'approved',
+  })
+  @IsOptional()
+  status?: 'men' | 'women' | 'unisex' | 'kid' | '';
+
+  @ApiProperty({
     required: false,
     description: 'Precio mínimo para filtrar resultados',
     example: 0,

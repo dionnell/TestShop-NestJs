@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ArrayContains, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import {
   WebpayPlus,
@@ -166,23 +166,36 @@ export class PaymentService {
 
   // detalle de todos los pagos de los usuarios (solo admin) con paginación y búsqueda por email
   async getAllPayments(paginationDto: PaginationDto) {
-    const { limit = 12, offset = 0, q: query } = paginationDto
+    const { limit = 12, offset = 0, q: query, status } = paginationDto
+
+    const statusArray = status ? status.toUpperCase().split(',') : undefined;
 
     const payments = await this.paymentRepository.find({
-      where: query
-        ? [{ user: { email: query } }, 
-        {user: {fullName: query }}]
-        : undefined,
+      where: {
+        status: statusArray ? ArrayContains(statusArray) : undefined,
+        user: query
+          ? [
+              { email: query },
+              { fullName: query },
+            ]
+          : undefined,
+      },
+      relations: ['user', 'items', 'items.product', 'items.product.images'],
       order: { createdAt: 'DESC' },
       take: limit,
       skip: offset,
     });
 
     const totalPayments = await this.paymentRepository.count({
-      where: query
-        ? [{ user: { email: query } }, 
-        {user: {fullName: query }}]
-        : undefined,
+      where: {
+        status: statusArray ? ArrayContains(statusArray) : undefined,
+        user: query
+          ? [
+              { email: query },
+              { fullName: query },
+            ]
+          : undefined,
+      }
     });
 
     return {
