@@ -38,7 +38,7 @@ export class PaginationDto {
     example: 'approved',
   })
   @IsOptional()
-  status?: 'men' | 'women' | 'unisex' | 'kid' | '';
+  status?: 'approved' | 'pending' | 'failed' | 'cancelled' | '';
 
   @ApiProperty({
     required: false,

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ArrayContains, Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import {
   WebpayPlus,
@@ -166,43 +166,36 @@ export class PaymentService {
 
   // detalle de todos los pagos de los usuarios (solo admin) con paginación y búsqueda por email
   async getAllPayments(paginationDto: PaginationDto) {
-    const { limit = 12, offset = 0, q: query, status } = paginationDto
-
-    const statusArray = status ? status.toUpperCase().split(',') : undefined;
-
-    const payments = await this.paymentRepository.find({
-      where: {
-        status: statusArray ? ArrayContains(statusArray) : undefined,
-        user: query
-          ? [
-              { email: query },
-              { fullName: query },
-            ]
-          : undefined,
-      },
-      relations: ['user', 'items', 'items.product', 'items.product.images'],
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip: offset,
-    });
-
-    const totalPayments = await this.paymentRepository.count({
-      where: {
-        status: statusArray ? ArrayContains(statusArray) : undefined,
-        user: query
-          ? [
-              { email: query },
-              { fullName: query },
-            ]
-          : undefined,
+    const { limit = 12, offset = 0, q: query, status } = paginationDto;
+    
+    const buildWhere = () => {
+      const statusCondition = status ? { status: status as any } : {};
+    
+      if (query) {
+        return [
+          { ...statusCondition, user: { email: ILike(`%${query}%`) } },
+          { ...statusCondition, user: { fullName: ILike(`%${query}%`) } },
+        ];
       }
-    });
-
+      return statusCondition;
+    };
+  
+    const [payments, totalPayments] = await Promise.all([
+      this.paymentRepository.find({
+        where: buildWhere(),
+        relations: ['user', 'items', 'items.product', 'items.product.images'],
+        order: { createdAt: 'DESC' },
+        take: limit,
+        skip: offset,
+      }),
+      this.paymentRepository.count({ where: buildWhere() }),
+    ]);
+  
     return {
       count: totalPayments,
       pages: Math.ceil(totalPayments / limit),
       payments,
-    }
+    };
   }
 
   //  Detalle de un pago con sus items 
