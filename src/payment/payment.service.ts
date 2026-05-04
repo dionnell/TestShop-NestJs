@@ -208,15 +208,39 @@ export class PaymentService {
   }
 
   async getPaymentsByUserId(userId: string) {
-  const payments = await this.paymentRepository.find({
-    where: { user: { id: userId } },
-    order: { createdAt: 'DESC' },
-  });
+    const payments = await this.paymentRepository.find({
+      where: { user: { id: userId } },
+      order: { createdAt: 'DESC' },
+    });
 
-  if (!payments.length) {
-    throw new NotFoundException(`No se encontraron pagos para el usuario ${userId}`);
+    if (!payments.length) {
+      throw new NotFoundException(`No se encontraron pagos para el usuario ${userId}`);
+    }
+
+    return payments;
   }
 
-  return payments;
-}
+  async cancelPayment(id: string) {
+    const payment = await this.paymentRepository.findOne({
+      where: { id },
+    });
+  
+    if (!payment)
+      throw new NotFoundException('Pago no encontrado');
+  
+    if (payment.status !== 'approved')
+      throw new BadRequestException(
+        `Solo se pueden cancelar pagos aprobados. Estado actual: ${payment.status}`
+      );
+    
+    payment.status = 'cancelled';
+    await this.paymentRepository.save(payment);
+    
+    return {
+      message: 'Pago cancelado exitosamente',
+      id: payment.id,
+      buyOrder: payment.buyOrder,
+      status: payment.status,
+    };
+  }
 }

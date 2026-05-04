@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, Param, ParseUUIDPipe, Res } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Param, ParseUUIDPipe, Res, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -86,5 +86,17 @@ export class PaymentController {
     @Param('userId', ParseUUIDPipe) userId: string,
   ) {
     return this.paymentService.getPaymentsByUserId(userId);
+  }
+
+  // Cancelar un pago (solo admin)
+  @Patch(':id/cancel')
+  @Auth(ValidRoles.admin)
+  @ApiOperation({ summary: 'Cancel an approved payment (admin only)' })
+  @ApiResponse({ status: 200, description: 'Payment cancelled successfully' })
+  @ApiResponse({ status: 400, description: 'Payment is not in approved status' })
+  @ApiResponse({ status: 403, description: 'Forbidden. Admin role required.' })
+  @ApiResponse({ status: 404, description: 'Payment not found' })
+  cancelPayment(@Param('id', ParseUUIDPipe) id: string) {
+    return this.paymentService.cancelPayment(id);
   }
 }
