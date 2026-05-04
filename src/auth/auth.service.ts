@@ -60,6 +60,12 @@ export class AuthService {
     if ( !bcrypt.compareSync( password, user.password ) )
       throw new UnauthorizedException('Credentials are not valid (password)');
 
+    // Si el usuario estaba inactivo, lo reactivamos automáticamente
+    if ( !user.isActive ) {
+      await this.userRepository.update(user.id, { isActive: true });
+      user.isActive = true;
+    }
+    
     delete user.password;
 
     return {
