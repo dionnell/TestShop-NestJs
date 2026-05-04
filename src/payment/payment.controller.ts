@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, Param, ParseUUIDPipe, Res, Patch } from '@nestjs/common';
+import { Controller, Post, Get, Query, Param, ParseUUIDPipe, Res, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
