@@ -4,11 +4,13 @@ API RESTful para una tienda en línea construida con NestJS. Gestiona productos,
 
 ## Funcionalidades
 
-- **Autenticación y autorización**: Registro e inicio de sesión de usuarios con JWT. Protección de rutas por roles (`user`, `admin`, `super-user`) mediante guards y decoradores personalizados. Soporte para actualización de perfil (nombre, teléfono, dirección) y cambio de contraseña con verificación de la contraseña actual.
-- **Gestión de productos**: CRUD completo de productos con soporte para imágenes, tallas, géneros, tags, precios y stock. Incluye paginación, filtros por género, precio, talla y búsqueda por texto.
-- **Carrito de compras**: Agregar, actualizar cantidad y eliminar productos del carrito. El sistema detecta si el mismo producto con la misma talla ya existe e incrementa la cantidad automáticamente. Validación de tallas disponibles por producto.
-- **Favoritos**: Agregar y eliminar productos de favoritos por usuario. Endpoint para administradores que agrupa todos los productos con el conteo de usuarios que los tienen en favoritos, ordenados de mayor a menor.
+- **Autenticación y autorización**: Registro e inicio de sesión de usuarios con JWT. Protección de rutas por roles (`user`, `admin`, `super-user`) mediante guards y decoradores personalizados. Soporte para actualización de perfil (nombre, teléfono, dirección) y cambio de contraseña con verificación de la contraseña actual. Reactivación automática de usuarios inactivos al iniciar sesión.
+- **Gestión de usuarios (admin)**: Listado paginado de todos los usuarios con búsqueda por nombre o email. Edición de cualquier usuario por ID incluyendo nombre, email, teléfono, dirección, roles, estado activo y contraseña.
+- **Gestión de productos**: CRUD completo de productos con soporte para imágenes, tallas, géneros, tags, precios y stock. Incluye paginación, filtros por género, precio mínimo/máximo, tallas y búsqueda por texto.
+- **Carrito de compras**: Agregar, actualizar cantidad y eliminar productos del carrito. El sistema detecta si el mismo producto con la misma talla ya existe e incrementa la cantidad automáticamente. Validación de tallas disponibles por producto. Consulta del carrito de cualquier usuario por ID.
+- **Favoritos**: Agregar y eliminar productos de favoritos por usuario. Endpoint para administradores que agrupa todos los productos con el conteo de usuarios que los tienen en favoritos, ordenados de mayor a menor, con búsqueda y paginación.
 - **Pagos con Transbank Webpay Plus**: Integración completa con el SDK de Transbank. Crea transacciones desde el carrito del usuario, redirige a la página de pago de Webpay, confirma el resultado y vacía el carrito si el pago fue aprobado. Guarda un snapshot de los items al momento del pago. Soporta ambientes de integración (testing) y producción mediante variable de entorno.
+- **Historial de pagos**: El usuario puede consultar su propio historial de pagos con detalle de items. Los administradores pueden ver todos los pagos con paginación, filtro por estado (`pending`, `approved`, `failed`, `cancelled`) y búsqueda por email o nombre de usuario. Los administradores también pueden cancelar pagos aprobados y consultar el historial de cualquier usuario por ID.
 - **Carga de archivos**: Subida de imágenes de productos al servidor con validación de tipo y renombramiento automático con UUID.
 - **WebSockets**: Módulo de mensajería en tiempo real con Socket.IO, autenticado mediante JWT.
 - **Seed**: Endpoint para poblar la base de datos con productos y usuarios de prueba.
@@ -48,7 +50,7 @@ https://testshop-nestjs.onrender.com/api/
 
 | Servicio | Plataforma | URL |
 |----------|-----------|-----|
-| Backend | Render | [https://testshop-nestjs.onrender.com](https://testshop-nestjs.onrender.com) |
+| Backend | Render | [https://testshop-nestjs.onrender.com/api/](https://testshop-nestjs.onrender.com/api/) |
 | Base de datos | Neon Serverless PostgreSQL | — |
 | Frontend | Netlify | [https://test-shop-react.netlify.app/](https://test-shop-react.netlify.app/) |
 
@@ -135,3 +137,72 @@ TRANSBANK_ENV=integration
 # TRANSBANK_COMMERCE_CODE=
 # TRANSBANK_API_KEY=
 ```
+
+## Endpoints principales
+
+### Auth (`/api/auth`)
+
+| Método | Ruta | Rol requerido | Descripción |
+|--------|------|---------------|-------------|
+| POST | `/register` | — | Registro de usuario |
+| POST | `/login` | — | Inicio de sesión |
+| GET | `/check-status` | user | Refresca token y datos del usuario |
+| PATCH | `/profile` | user | Actualizar nombre, teléfono y dirección |
+| PATCH | `/change-password` | user | Cambiar contraseña con verificación |
+| GET | `/users` | admin | Listar todos los usuarios (paginado, buscable) |
+| PATCH | `/users/:id` | admin | Editar cualquier usuario por ID |
+
+### Products (`/api/products`)
+
+| Método | Ruta | Rol requerido | Descripción |
+|--------|------|---------------|-------------|
+| GET | `/` | — | Listar productos (filtros: género, precio, tallas, texto) |
+| GET | `/:term` | — | Obtener producto por ID, slug o título |
+| POST | `/` | user | Crear producto |
+| PATCH | `/:id` | admin | Actualizar producto |
+| DELETE | `/:id` | admin | Eliminar producto |
+
+### Cart (`/api/cart`)
+
+| Método | Ruta | Rol requerido | Descripción |
+|--------|------|---------------|-------------|
+| GET | `/` | user | Ver carrito del usuario autenticado |
+| POST | `/` | user | Agregar producto al carrito |
+| PATCH | `/item/:itemId` | user | Actualizar cantidad de un item |
+| DELETE | `/item/:itemId` | user | Eliminar un item del carrito |
+| DELETE | `/` | user | Vaciar el carrito |
+| GET | `/user/:userId` | user | Ver carrito de un usuario por ID |
+
+### Favorites (`/api/favorites`)
+
+| Método | Ruta | Rol requerido | Descripción |
+|--------|------|---------------|-------------|
+| GET | `/` | user | Ver favoritos del usuario autenticado |
+| POST | `/` | user | Agregar producto a favoritos |
+| DELETE | `/:productId` | user | Eliminar producto de favoritos |
+| GET | `/admin/group` | admin | Productos agrupados por conteo de favoritos |
+
+### Payments (`/api/payments`)
+
+| Método | Ruta | Rol requerido | Descripción |
+|--------|------|---------------|-------------|
+| POST | `/create` | user | Iniciar transacción Webpay desde el carrito |
+| GET | `/confirm` | — | Callback de Transbank (confirmación de pago) |
+| GET | `/my-payments` | user | Historial de pagos del usuario autenticado |
+| GET | `/admin/all` | admin | Todos los pagos (paginado, filtro por estado y búsqueda) |
+| GET | `/:id` | user | Detalle de un pago por ID |
+| GET | `/user/:userId/payments` | admin | Historial de pagos de un usuario específico |
+| PATCH | `/:id/cancel` | admin | Cancelar un pago aprobado |
+
+### Files (`/api/files`)
+
+| Método | Ruta | Rol requerido | Descripción |
+|--------|------|---------------|-------------|
+| POST | `/product` | — | Subir imagen de producto |
+| GET | `/product/:imageName` | — | Obtener imagen de producto |
+
+### Seed (`/api/seed`)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/` | Reinicia la base de datos con datos de prueba |
