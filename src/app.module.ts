@@ -14,6 +14,7 @@ import { MessagesWsModule } from './messages-ws/messages-ws.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { CartModule } from './cart/cart.module';
 import { PaymentModule } from './payment/payment.module';
+import { RelatedProductsModule } from './related-products/related-products.module';
 
 
 @Module({
@@ -58,6 +59,8 @@ import { PaymentModule } from './payment/payment.module';
     CartModule,
 
     PaymentModule,
+
+    RelatedProductsModule,
   ],
 })
 export class AppModule {}
