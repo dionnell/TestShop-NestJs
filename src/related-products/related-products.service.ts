@@ -20,28 +20,10 @@ export class RelatedProductsService {
     private readonly configService: ConfigService,
     private readonly productsService: ProductsService,
   ) {
+    // fetch ya está disponible globalmente gracias al polyfill en main.ts
     this.openai = new OpenAI({
       apiKey: this.configService.get<string>('OPENAI_API_KEY'),
-      // ✅ Fix para Node 17: node-fetch como polyfill de fetch
-      fetch: this.getFetch(),
     });
-  }
-
-  // Node 18+ tiene fetch nativo. Node 17 no lo tiene, así que usamos
-  // el fetch que ya viene incluido en el SDK de OpenAI como fallback.
-  private getFetch() {
-    if (typeof globalThis.fetch === 'function') {
-      return globalThis.fetch; // Node 18+
-    }
-    // Para Node 17, usamos undici que viene con Node o el fetch del propio SDK
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { fetch } = require('undici');
-      return fetch;
-    } catch {
-      // undici no disponible — dejamos que OpenAI maneje el error
-      return undefined;
-    }
   }
 
   async getRelatedProducts(productId: string, limit = 6) {
