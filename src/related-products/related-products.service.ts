@@ -1,9 +1,8 @@
-import { Injectable, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { ProductsService } from '../products/products.service';
 
-// Metadatos mínimos que enviamos a OpenAI para no gastar tokens innecesarios
 interface ProductMeta {
   id: string;
   title: string;
@@ -23,15 +22,32 @@ export class RelatedProductsService {
   ) {
     this.openai = new OpenAI({
       apiKey: this.configService.get<string>('OPENAI_API_KEY'),
+      // ✅ Fix para Node 17: node-fetch como polyfill de fetch
+      fetch: this.getFetch(),
     });
   }
 
+  // Node 18+ tiene fetch nativo. Node 17 no lo tiene, así que usamos
+  // el fetch que ya viene incluido en el SDK de OpenAI como fallback.
+  private getFetch() {
+    if (typeof globalThis.fetch === 'function') {
+      return globalThis.fetch; // Node 18+
+    }
+    // Para Node 17, usamos undici que viene con Node o el fetch del propio SDK
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { fetch } = require('undici');
+      return fetch;
+    } catch {
+      // undici no disponible — dejamos que OpenAI maneje el error
+      return undefined;
+    }
+  }
+
   async getRelatedProducts(productId: string, limit = 6) {
-    // 1. Obtener el producto actual
     const current = await this.productsService.findOne(productId);
     if (!current) throw new NotFoundException('Product not found');
 
-    // 2. Obtener todos los productos (excluir el actual)
     const { products: all } = await this.productsService.findAll({ limit: 200, offset: 0 });
     const candidates: ProductMeta[] = all
       .filter((p) => p.id !== productId)
@@ -45,7 +61,6 @@ export class RelatedProductsService {
 
     if (candidates.length === 0) return [];
 
-    // 3. Construir el prompt
     const currentMeta: ProductMeta = {
       id: current.id,
       title: current.title,
@@ -56,17 +71,16 @@ export class RelatedProductsService {
 
     const prompt = buildPrompt(currentMeta, candidates, limit);
 
-    // 4. Llamar a OpenAI
     this.logger.log(`Requesting related products for: "${current.title}"`);
 
     let relatedIds: string[] = [];
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',       // Modelo económico, suficiente para esta tarea
-        temperature: 0,              // Sin aleatoriedad — queremos resultados consistentes
-        max_tokens: 200,             // Solo necesitamos un array de IDs
-        response_format: { type: 'json_object' }, // Forzamos JSON para parsear fácil
+        model: 'gpt-4o-mini',
+        temperature: 0,
+        max_tokens: 200,
+        response_format: { type: 'json_object' },
         messages: [
           {
             role: 'system',
@@ -85,17 +99,14 @@ export class RelatedProductsService {
       const raw = completion.choices[0]?.message?.content ?? '{}';
       this.logger.log(`OpenAI raw response: ${raw}`);
 
-      // 5. Parsear la respuesta
       const parsed = JSON.parse(raw);
       relatedIds = Array.isArray(parsed.ids) ? parsed.ids : [];
 
     } catch (error) {
-      // Si OpenAI falla, hacemos fallback a filtro por tags (no rompemos la UI)
       this.logger.error('OpenAI call failed, falling back to tag-based filter', error);
       relatedIds = fallbackByTags(currentMeta, candidates, limit);
     }
 
-    // 6. Devolver los productos completos en el orden que dijo la IA
     const productMap = new Map(all.map((p) => [p.id, p]));
     return relatedIds
       .filter((id) => productMap.has(id))
@@ -103,8 +114,6 @@ export class RelatedProductsService {
       .map((id) => productMap.get(id)!);
   }
 }
-
-// Helpers 
 
 function buildPrompt(current: ProductMeta, candidates: ProductMeta[], limit: number): string {
   return `
@@ -130,12 +139,7 @@ Rules:
 `.trim();
 }
 
-// Fallback: productos con más tags en común, sin llamar a OpenAI
-function fallbackByTags(
-  current: ProductMeta,
-  candidates: ProductMeta[],
-  limit: number,
-): string[] {
+function fallbackByTags(current: ProductMeta, candidates: ProductMeta[], limit: number): string[] {
   return candidates
     .map((p) => ({
       id: p.id,
