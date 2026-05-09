@@ -11,6 +11,7 @@ API RESTful para una tienda en línea construida con NestJS. Gestiona productos,
 - **Favoritos**: Agregar y eliminar productos de favoritos por usuario. Endpoint para administradores que agrupa todos los productos con el conteo de usuarios que los tienen en favoritos, ordenados de mayor a menor, con búsqueda y paginación.
 - **Pagos con Transbank Webpay Plus**: Integración completa con el SDK de Transbank. Crea transacciones desde el carrito del usuario, redirige a la página de pago de Webpay, confirma el resultado y vacía el carrito si el pago fue aprobado. Guarda un snapshot de los items al momento del pago. Soporta ambientes de integración (testing) y producción mediante variable de entorno.
 - **Historial de pagos**: El usuario puede consultar su propio historial de pagos con detalle de items. Los administradores pueden ver todos los pagos con paginación, filtro por estado (`pending`, `approved`, `failed`, `cancelled`) y búsqueda por email o nombre de usuario. Los administradores también pueden cancelar pagos aprobados y consultar el historial de cualquier usuario por ID.
+- **Recomendaciones con IA (OpenAI)**: Integración con `gpt-4o-mini` para mostrar productos relacionados semánticamente en la página de detalle de producto. El backend construye un prompt con los metadatos del producto actual y los candidatos disponibles, y la IA ordena los más relevantes según tags compartidos, género, rango de precio y categoría inferida del título. Incluye fallback automático por tags si OpenAI falla, y el resultado se cachea 10 minutos en el frontend para minimizar el uso de tokens.
 - **Carga de archivos**: Subida de imágenes de productos al servidor con validación de tipo y renombramiento automático con UUID.
 - **WebSockets**: Módulo de mensajería en tiempo real con Socket.IO, autenticado mediante JWT.
 - **Seed**: Endpoint para poblar la base de datos con productos y usuarios de prueba.
@@ -23,6 +24,7 @@ API RESTful para una tienda en línea construida con NestJS. Gestiona productos,
 - **[PostgreSQL](https://www.postgresql.org/)**: Base de datos relacional. Se puede levantar localmente mediante Docker Compose.
 - **[Passport + JWT](https://www.passportjs.org/)**: Estrategia de autenticación stateless basada en JSON Web Tokens con `@nestjs/passport` y `passport-jwt`.
 - **[bcrypt](https://github.com/kelektiv/node.bcrypt.js)**: Hash seguro de contraseñas antes de persistirlas en la base de datos.
+- **[OpenAI SDK](https://github.com/openai/openai-node)**: Integración con `gpt-4o-mini` para recomendaciones de productos relacionados. El prompt envía metadatos mínimos (título, tags, género, precio) para optimizar el uso de tokens. Se usa `node-fetch@2` como polyfill de `fetch` para compatibilidad con Node 17.
 - **[transbank-sdk](https://github.com/TransbankDevelopers/transbank-sdk-nodejs)**: Integración con Webpay Plus para procesamiento de pagos en ambientes de integración y producción.
 - **[Socket.IO](https://socket.io/)**: Comunicación bidireccional en tiempo real para el módulo de mensajería (`@nestjs/websockets`).
 - **[Multer](https://github.com/expressjs/multer)**: Middleware para la gestión y almacenamiento de archivos subidos.
@@ -130,12 +132,14 @@ PORT=3000
 STAGE=dev
 
 API_URL=http://localhost:3000/api
-FRONTEND_URL=http://localhost:5173/#/profile
+FRONTEND_URL=http://localhost:5173/#/
 
 TRANSBANK_ENV=integration
 # Solo en producción:
 # TRANSBANK_COMMERCE_CODE=
 # TRANSBANK_API_KEY=
+
+OPENAI_API_KEY=sk-...
 ```
 
 ## Endpoints principales
@@ -158,6 +162,7 @@ TRANSBANK_ENV=integration
 |--------|------|---------------|-------------|
 | GET | `/` | — | Listar productos (filtros: género, precio, tallas, texto) |
 | GET | `/:term` | — | Obtener producto por ID, slug o título |
+| GET | `/:id/related` | — | Productos relacionados sugeridos por IA (OpenAI) |
 | POST | `/` | user | Crear producto |
 | PATCH | `/:id` | admin | Actualizar producto |
 | DELETE | `/:id` | admin | Eliminar producto |
