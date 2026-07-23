@@ -15,7 +15,7 @@ import { Payment } from './entities/payment.entity';
 import { PaymentItem } from './entities/payment-item.entity';
 import { User } from '../auth/entities/user.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { PaginationDto } from '../common/dtos/pagination.dto';
 
 @Injectable()
 export class PaymentService {

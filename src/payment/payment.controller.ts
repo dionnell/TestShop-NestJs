@@ -6,8 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { PaymentService } from './payment.service';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
-import { ValidRoles } from 'src/auth/interfaces';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { ValidRoles } from '../auth/interfaces';
+import { PaginationDto } from '../common/dtos/pagination.dto';
 
 @ApiTags('Payments')
 @Controller('payments')

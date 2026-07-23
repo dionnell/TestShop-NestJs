@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import { Favorite } from './entities/favorite.entity';
 import { User } from '../auth/entities/user.entity';
 import { ProductsService } from '../products/products.service';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { PaginationDto } from '../common/dtos/pagination.dto';
 
 @Injectable()
 export class FavoritesService {

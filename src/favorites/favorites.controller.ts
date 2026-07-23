@@ -4,8 +4,8 @@ import { FavoritesService } from './favorites.service';
 import { Auth, GetUser } from '../auth/decorators';
 import { User } from '../auth/entities/user.entity';
 import { AddFavoriteDto } from './dto/add-favorite.dto';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
-import { ValidRoles } from 'src/auth/interfaces/valid-roles';
+import { PaginationDto } from '../common/dtos/pagination.dto';
+import { ValidRoles } from '../auth/interfaces/valid-roles';
 
 @ApiTags('Favorites')
 @Controller('favorites')

@@ -11,7 +11,7 @@ import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AdminUpdateProfileDto } from './dto/admin-update-profile.dto';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { PaginationDto } from '../common/dtos/pagination.dto';
 
 
 @Injectable()

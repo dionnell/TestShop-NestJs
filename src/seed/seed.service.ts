@@ -110,8 +110,9 @@ export class SeedService {
             publicId: result.public_id,
             order:    index,
           };
-        } catch (error) {
-          this.logger.error(`  ✗ Failed to upload ${fileName}: ${error.message}`);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.logger.error(`  ✗ Failed to upload ${fileName}: ${message}`);
           // Return a placeholder so the product still gets created
           return {
             url:      '',

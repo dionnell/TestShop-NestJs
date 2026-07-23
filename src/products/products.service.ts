@@ -18,11 +18,11 @@ import {
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 import { validate as isUUID } from 'uuid';
 import { ProductImage, Product } from './entities';
 import { User } from '../auth/entities/user.entity';
+import { PaginationDto } from '../common/dtos/pagination.dto';
 
 // Shape sent by the frontend when images are already uploaded to Cloudinary
 interface ImageInput {
