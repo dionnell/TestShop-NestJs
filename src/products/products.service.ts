@@ -11,7 +11,6 @@ import {
   Between,
   DataSource,
   ILike,
-  In,
   LessThanOrEqual,
   MoreThanOrEqual,
   Repository,
@@ -24,6 +23,13 @@ import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { validate as isUUID } from 'uuid';
 import { ProductImage, Product } from './entities';
 import { User } from '../auth/entities/user.entity';
+
+// Shape sent by the frontend when images are already uploaded to Cloudinary
+interface ImageInput {
+  url: string;
+  publicId?: string;
+  order?: number;
+}
 
 @Injectable()
 export class ProductsService {
@@ -45,15 +51,18 @@ export class ProductsService {
 
       const product = this.productRepository.create({
         ...productDetails,
-        images: images.map((image) =>
-          this.productImageRepository.create({ url: image }),
+        images: (images as unknown as ImageInput[]).map((img, index) =>
+          this.productImageRepository.create({
+            url:      typeof img === 'string' ? img : img.url,
+            publicId: typeof img === 'string' ? undefined : img.publicId,
+            order:    typeof img === 'string' ? index : (img.order ?? index),
+          }),
         ),
         user,
       });
 
       await this.productRepository.save(product);
-
-      return { ...product, images };
+      return this.findOnePlain(product.id);
     } catch (error) {
       this.handleDBExceptions(error);
     }
@@ -84,29 +93,25 @@ export class ProductsService {
     const products = await this.productRepository.find({
       take: limit,
       skip: offset,
-      relations: {
-        images: true,
-      },
-      order: {
-        id: 'ASC',
-      },
+      relations: { images: true },
+      order: { id: 'ASC', images: { order: 'ASC' } },
       where: {
-        gender: gender ? gender : undefined,
-        price: priceWhere,
-        sizes: sizesArray ? ArrayContains(sizesArray) : undefined,
-        title: query ? ILike(`%${query}%`) : undefined,
+        gender:  gender ? gender : undefined,
+        price:   priceWhere,
+        sizes:   sizesArray ? ArrayContains(sizesArray) : undefined,
+        title:   query ? ILike(`%${query}%`) : undefined,
       },
     });
 
     const totalProducts = await this.productRepository.count({
       where: {
         gender: gender ? gender : undefined,
-        price: priceWhere,
-        sizes: sizesArray ? ArrayContains(sizesArray) : undefined,
-        title: query ? ILike(`%${query}%`) : undefined,
+        price:  priceWhere,
+        sizes:  sizesArray ? ArrayContains(sizesArray) : undefined,
+        title:  query ? ILike(`%${query}%`) : undefined,
       },
     });
- 
+
     return {
       count: totalProducts,
       pages: Math.ceil(totalProducts / limit),
@@ -121,20 +126,24 @@ export class ProductsService {
     let product: Product;
 
     if (isUUID(term)) {
-      product = await this.productRepository.findOneBy({ id: term });
+      product = await this.productRepository.findOne({
+        where: { id: term },
+        relations: { images: true },
+        order:  { images: { order: 'ASC' } },
+      });
     } else {
-      const queryBuilder = this.productRepository.createQueryBuilder('prod');
-      product = await queryBuilder
+      product = await this.productRepository
+        .createQueryBuilder('prod')
         .where('UPPER(title) =:title or slug =:slug', {
           title: term.toUpperCase(),
-          slug: term.toLowerCase(),
+          slug:  term.toLowerCase(),
         })
         .leftJoinAndSelect('prod.images', 'prodImages')
+        .orderBy('prodImages.order', 'ASC')
         .getOne();
     }
 
     if (!product) throw new NotFoundException(`Product with ${term} not found`);
-
     return product;
   }
 
@@ -142,7 +151,12 @@ export class ProductsService {
     const { images = [], ...rest } = await this.findOne(term);
     return {
       ...rest,
-      images: images.map((image) => image.url),
+      images: images.map((image) => ({
+        id:       image.id,
+        url:      image.url,
+        publicId: image.publicId,
+        order:    image.order,
+      })),
     };
   }
 
@@ -150,29 +164,28 @@ export class ProductsService {
     const { images, ...toUpdate } = updateProductDto;
 
     const product = await this.productRepository.preload({ id, ...toUpdate });
+    if (!product) throw new NotFoundException(`Product with id: ${id} not found`);
 
-    if (!product)
-      throw new NotFoundException(`Product with id: ${id} not found`);
-
-    // Create query runner
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
       if (images) {
+        // Delete old DB rows (Cloudinary assets are deleted separately via DELETE /files/product/image/:id)
         await queryRunner.manager.delete(ProductImage, { product: { id } });
 
-        product.images = images.map((image) =>
-          this.productImageRepository.create({ url: image }),
+        product.images = (images as unknown as ImageInput[]).map((img, index) =>
+          this.productImageRepository.create({
+            url:      typeof img === 'string' ? img : img.url,
+            publicId: typeof img === 'string' ? undefined : img.publicId,
+            order:    typeof img === 'string' ? index : (img.order ?? index),
+          }),
         );
       }
 
-      // await this.productRepository.save( product );
       product.user = user;
-
       await queryRunner.manager.save(product);
-
       await queryRunner.commitTransaction();
       await queryRunner.release();
 
@@ -191,19 +204,13 @@ export class ProductsService {
 
   private handleDBExceptions(error: any) {
     if (error.code === '23505') throw new BadRequestException(error.detail);
-
     this.logger.error(error);
-    // console.log(error)
-    throw new InternalServerErrorException(
-      'Unexpected error, check server logs',
-    );
+    throw new InternalServerErrorException('Unexpected error, check server logs');
   }
 
   async deleteAllProducts() {
-    const query = this.productRepository.createQueryBuilder('product');
-
     try {
-      return await query.delete().where({}).execute();
+      return await this.productRepository.createQueryBuilder('product').delete().where({}).execute();
     } catch (error) {
       this.handleDBExceptions(error);
     }

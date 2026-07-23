@@ -1,62 +1,90 @@
 import {
   Controller,
-  Get,
   Post,
+  Delete,
+  Patch,
   Param,
   UploadedFile,
   UseInterceptors,
   BadRequestException,
-  Res,
+  Body,
+  ParseIntPipe,
+  Query,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiConsumes, ApiQuery } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
-import { Response } from 'express';
-import { diskStorage } from 'multer';
+import { CloudinaryService } from './cloudinary.service';
 import { FilesService } from './files.service';
+import { fileFilter } from './helpers';
+import { Auth } from '../auth/decorators';
+import { ValidRoles } from '../auth/interfaces';
 
-import { fileFilter, fileNamer } from './helpers';
-
-@ApiTags('Files - Get and Upload')
+@ApiTags('Files - Upload & Manage')
 @Controller('files')
 export class FilesController {
   constructor(
     private readonly filesService: FilesService,
-    private readonly configService: ConfigService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  @Get('product/:imageName')
-  findProductImage(
-    @Res() res: Response,
-    @Param('imageName') imageName: string,
-  ) {
-    const path = this.filesService.getStaticProductImage(imageName);
-
-    res.sendFile(path);
-  }
-
+  // ─── Upload ────────────────────────────────────────────────────────────────
   @Post('product')
+  @Auth(ValidRoles.admin)
+  @ApiOperation({ summary: 'Upload a product image to Cloudinary (testShop/<slug>/)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiQuery({ name: 'slug', required: false, description: 'Product slug — used as Cloudinary subfolder (default: general)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
   @UseInterceptors(
     FileInterceptor('file', {
-      fileFilter: fileFilter,
-      // limits: { fileSize: 1000 }
-      storage: diskStorage({
-        destination: './static/products',
-        filename: fileNamer,
-      }),
+      fileFilter,
+      storage: memoryStorage(),
     }),
   )
-  uploadProductImage(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('Make sure that the file is an image');
-    }
+  async uploadProductImage(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('slug') slug = 'general',
+  ) {
+    if (!file) throw new BadRequestException('Make sure that the file is an image');
 
-    // const secureUrl = `${ file.filename }`;
-    const secureUrl = `${this.configService.get('HOST_API')}/files/product/${
-      file.filename
-    }`;
+    const result = await this.cloudinaryService.uploadFile(file, slug);
 
-    return { secureUrl, fileName: file.filename };
+    return {
+      secureUrl: result.secure_url,
+      publicId:  result.public_id,
+    };
+  }
+
+  // ─── Delete single image ───────────────────────────────────────────────────
+  @Delete('product/image/:imageId')
+  @Auth(ValidRoles.admin)
+  @ApiOperation({ summary: 'Delete a product image by its DB id (also removes from Cloudinary)' })
+  deleteProductImage(@Param('imageId', ParseIntPipe) imageId: number) {
+    return this.filesService.deleteImage(imageId);
+  }
+
+  // ─── Reorder images ────────────────────────────────────────────────────────
+  @Patch('product/:productId/reorder')
+  @Auth(ValidRoles.admin)
+  @ApiOperation({ summary: 'Set the display order of images for a product' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        orderedIds: { type: 'array', items: { type: 'number' }, example: [3, 1, 2] },
+      },
+    },
+  })
+  reorderImages(
+    @Param('productId') productId: string,
+    @Body('orderedIds') orderedIds: number[],
+  ) {
+    return this.filesService.reorderImages(productId, orderedIds);
   }
 }
