@@ -10,11 +10,9 @@ export class ProductImage {
   @Column('text')
   url: string;
 
-  /** Cloudinary public_id — needed to delete the asset */
   @Column('text', { nullable: true })
   publicId: string;
 
-  /** Display order — lower number = first image shown */
   @Column('int', { default: 0 })
   order: number;
 

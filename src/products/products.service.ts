@@ -19,8 +19,7 @@ import {
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { PaginationDto } from '../common/dtos/pagination.dto';
-
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 import { validate as isUUID } from 'uuid';
 import { ProductImage, Product } from './entities';
@@ -46,15 +45,18 @@ export class ProductsService {
 
       const product = this.productRepository.create({
         ...productDetails,
-        images: images.map((image) =>
-          this.productImageRepository.create({ url: image }),
+        images: images.map((img, index) =>
+          this.productImageRepository.create({
+            url:      img.url,
+            publicId: img.publicId,
+            order:    img.order ?? index,
+          }),
         ),
         user,
       });
 
       await this.productRepository.save(product);
-
-      return { ...product, images };
+      return this.findOnePlain(product.id);
     } catch (error) {
       this.handleDBExceptions(error);
     }
@@ -145,7 +147,12 @@ export class ProductsService {
     const { images = [], ...rest } = await this.findOne(term);
     return {
       ...rest,
-      images: images.map((image) => image.url),
+      images: images.map((image) => ({
+        id:       image.id,
+        url:      image.url,
+        publicId: image.publicId,
+        order:    image.order,
+      })),
     };
   }
 
@@ -166,8 +173,12 @@ export class ProductsService {
       if (images) {
         await queryRunner.manager.delete(ProductImage, { product: { id } });
 
-        product.images = images.map((image) =>
-          this.productImageRepository.create({ url: image }),
+        product.images = images.map((img, index) =>
+          this.productImageRepository.create({
+            url:      img.url,
+            publicId: img.publicId,
+            order:    img.order ?? index,
+          }),
         );
       }
 
