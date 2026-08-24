@@ -1,11 +1,14 @@
-import { IsInt, IsOptional, IsString, IsUrl, Min } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class ProductImageDto {
-  @IsUrl({}, { message: 'url must be a valid URL' })
+  @IsString()
   url: string;
 
+  // publicId can arrive as null (seed images) or undefined — treat both as optional
   @IsString()
   @IsOptional()
+  @Transform(({ value }) => value ?? undefined)
   publicId?: string;
 
   @IsInt()
