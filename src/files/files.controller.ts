@@ -45,13 +45,14 @@ export class FilesController {
     FileInterceptor('file', {
       fileFilter,
       storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
     }),
   )
   async uploadProductImage(
     @UploadedFile() file: Express.Multer.File,
     @Query('slug') slug = 'general',
   ) {
-    if (!file) throw new BadRequestException('Make sure that the file is an image');
+    if (!file) throw new BadRequestException('No file received or file type not allowed. Accepted: jpg, jpeg, png, gif, webp');
 
     const result = await this.cloudinaryService.uploadFile(file, slug);
 
