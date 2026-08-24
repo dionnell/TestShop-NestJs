@@ -109,15 +109,17 @@ export class ProductsService {
     const products = await this.productRepository.find({
       where:     { id: In(productIds) },
       relations: { images: true },
-      order:     { id: 'ASC' },
+      order:     { id: 'ASC', images: { order: 'ASC' } },
     });
- 
+
     return {
       count: totalProducts,
       pages: Math.ceil(totalProducts / limit),
       products: products.map((product) => ({
         ...product,
-        images: product.images.map((img) => img.url),
+        images: product.images
+          .sort((a, b) => a.order - b.order)
+          .map((img) => img.url),
       })),
     };
   }
