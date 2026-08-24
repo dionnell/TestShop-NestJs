@@ -126,7 +126,11 @@ export class ProductsService {
     let product: Product;
 
     if (isUUID(term)) {
-      product = await this.productRepository.findOneBy({ id: term });
+      product = await this.productRepository.findOne({
+        where: { id: term },
+        relations: { images: true },
+        order: { images: { order: 'ASC' } },
+      });
     } else {
       const queryBuilder = this.productRepository.createQueryBuilder('prod');
       product = await queryBuilder
@@ -135,6 +139,7 @@ export class ProductsService {
           slug: term.toLowerCase(),
         })
         .leftJoinAndSelect('prod.images', 'prodImages')
+        .orderBy('prodImages.order', 'ASC')
         .getOne();
     }
 
