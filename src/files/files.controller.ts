@@ -10,6 +10,7 @@ import {
   Body,
   ParseIntPipe,
   Query,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiConsumes, ApiQuery } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -24,6 +25,8 @@ import { ValidRoles } from '../auth/interfaces';
 @ApiTags('Files - Upload & Manage')
 @Controller('files')
 export class FilesController {
+  private readonly logger = new Logger('FilesController');
+
   constructor(
     private readonly filesService: FilesService,
     private readonly cloudinaryService: CloudinaryService,
@@ -54,12 +57,21 @@ export class FilesController {
   ) {
     if (!file) throw new BadRequestException('No file received or file type not allowed. Accepted: jpg, jpeg, png, gif, webp');
 
-    const result = await this.cloudinaryService.uploadFile(file, slug);
-
-    return {
-      secureUrl: result.secure_url,
-      publicId:  result.public_id,
-    };
+    try {
+      const result = await this.cloudinaryService.uploadFile(file, slug);
+      return {
+        secureUrl: result.secure_url,
+        publicId:  result.public_id,
+      };
+    } catch (error: any) {
+      this.logger.error('Upload error:', error?.message, error?.stack);
+      // Re-throw NestJS HTTP exceptions as-is
+      if (error?.status) throw error;
+      // Wrap unknown errors with details
+      throw new BadRequestException(
+        error?.message ?? 'Unknown error uploading to Cloudinary',
+      );
+    }
   }
 
   // ─── Delete single image ───────────────────────────────────────────────────
