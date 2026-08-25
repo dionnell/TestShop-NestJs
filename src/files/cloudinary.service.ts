@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import * as streamifier from 'streamifier';
@@ -16,20 +16,27 @@ export class CloudinaryService {
     });
   }
 
-  /**
-   * Upload from a Multer file buffer (used by the admin upload endpoint).
-   * Saves into testShop/<productSlug>/<filename>
-   */
   uploadFile(
     file: Express.Multer.File,
     productSlug = 'general',
   ): Promise<UploadApiResponse> {
     const folder = `testShop/${productSlug}`;
+
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder, resource_type: 'image' },
         (error, result) => {
-          if (error || !result) return reject(error ?? new Error('Upload failed'));
+          if (error) {
+            this.logger.error(`Cloudinary upload error: ${JSON.stringify(error)}`);
+            return reject(
+              new BadRequestException(
+                `Cloudinary error [${error.http_code}]: ${error.message}`,
+              ),
+            );
+          }
+          if (!result) {
+            return reject(new InternalServerErrorException('Cloudinary returned no result'));
+          }
           resolve(result);
         },
       );
@@ -37,20 +44,27 @@ export class CloudinaryService {
     });
   }
 
-  /**
-   * Upload from a local file path (used by the seed).
-   * Saves into testShop/<productSlug>/<filename>
-   */
   uploadFromPath(
     filePath: string,
     productSlug: string,
   ): Promise<UploadApiResponse> {
     const folder = `testShop/${productSlug}`;
+
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { folder, resource_type: 'image' },
         (error, result) => {
-          if (error || !result) return reject(error ?? new Error('Upload failed'));
+          if (error) {
+            this.logger.error(`Cloudinary upload error: ${JSON.stringify(error)}`);
+            return reject(
+              new BadRequestException(
+                `Cloudinary error [${error.http_code}]: ${error.message}`,
+              ),
+            );
+          }
+          if (!result) {
+            return reject(new InternalServerErrorException('Cloudinary returned no result'));
+          }
           resolve(result);
         },
       );
@@ -58,9 +72,6 @@ export class CloudinaryService {
     });
   }
 
-  /**
-   * Delete a single asset by its Cloudinary public_id.
-   */
   async deleteFile(publicId: string): Promise<void> {
     const result = await cloudinary.uploader.destroy(publicId);
     if (result.result !== 'ok' && result.result !== 'not found') {
@@ -68,19 +79,12 @@ export class CloudinaryService {
     }
   }
 
-  /**
-   * Delete an entire Cloudinary folder and ALL assets inside it.
-   * Used by the seed to wipe testShop/ before reloading.
-   */
   async deleteFolder(folderPath: string): Promise<void> {
     try {
-      // Delete all resources inside the folder first
       await cloudinary.api.delete_resources_by_prefix(folderPath + '/');
-      // Then delete the now-empty folder
       await cloudinary.api.delete_folder(folderPath);
       this.logger.log(`Deleted Cloudinary folder: ${folderPath}`);
     } catch (error: any) {
-      // If folder doesn't exist yet, that's fine
       if (error?.error?.http_code === 404) {
         this.logger.log(`Folder ${folderPath} not found — skipping delete`);
         return;
