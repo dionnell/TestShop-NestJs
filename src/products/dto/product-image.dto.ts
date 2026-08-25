@@ -5,14 +5,14 @@ export class ProductImageDto {
   @IsString()
   url: string;
 
-  // publicId can arrive as null (seed images) or undefined — treat both as optional
-  @IsString()
   @IsOptional()
-  @Transform(({ value }) => value ?? undefined)
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
+  @IsString()
   publicId?: string;
 
+  @IsOptional()
+  @Transform(({ value }) => (value === null || value === undefined ? 0 : Number(value)))
   @IsInt()
   @Min(0)
-  @IsOptional()
   order?: number;
 }
